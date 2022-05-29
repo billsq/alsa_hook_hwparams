@@ -79,12 +79,11 @@ static int snd_pcm_hook_hwparams_hw_params(snd_pcm_hook_t *hook)
 
 	// Send the open command as hw_params are ready
 	// Command will be called with arguments "format rate channels"
-	snprintf(command, 1000, "%s %s %d %d\n", commands[0], format, rate, channels);
-	err = system(command);
-	if (err > 0)
-		return -err;
-	else
-		return err;
+	snprintf(command, 1000, (const char *)commands[0], format, rate, channels);
+	do {
+		err = system(command);
+	} while (err != 0);
+	return err;
 }
 
 static int snd_pcm_hook_hwparams_hw_free(snd_pcm_hook_t *hook)
@@ -92,11 +91,11 @@ static int snd_pcm_hook_hwparams_hw_free(snd_pcm_hook_t *hook)
 	const char **commands = (const char **)snd_pcm_hook_get_private(hook);
 	// Send the close command so loopback can be opened / set with
 	// new hardware parameters
-	int err = system(commands[1]);
-	if (err > 0)
-		return -err;
-	else
-		return err;
+	int err;
+	do {
+		err = system(commands[1]);
+	} while (err != 0);
+	return err;
 }
 
 static int snd_pcm_hook_hwparams_close(snd_pcm_hook_t *hook)
@@ -168,10 +167,11 @@ int _snd_pcm_hook_hwparams_install(snd_pcm_t *pcm, snd_config_t *conf)
 
 	// In case loopback capture was already open send the close command
 	// so that the playback program will succeed if run a second time
-	err = system(commands[1]);
-	if (err == 0) return 0;
+	do {
+		err = system(commands[1]);
+	} while (err != 0);
+	return 0;
 
-	if (err > 0) err = -err;
  _err:
 	if (commands[0])
 		free((void *)commands[0]);
